@@ -22,10 +22,19 @@ def root_keyboard() -> InlineKeyboardMarkup:
 def nas_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
-            [("Uptime", "cmd:nas.uptime")],
-            [("DF", "cmd:nas.df")],
-            [("Docker", "menu:nas.docker")],
+            [("Docker", "menu:nas.docker"), ("System", "menu:sys")],
             [("Назад", "menu:root")],
+        ]
+    )
+
+
+def sys_keyboard() -> InlineKeyboardMarkup:
+    return _keyboard(
+        [
+            [("Uptime", "cmd:sys.uptime")],
+            [("DF", "cmd:sys.df")],
+            [("Top", "cmd:sys.top")],
+            [("Назад", "menu:nas")],
         ]
     )
 

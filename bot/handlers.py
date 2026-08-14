@@ -13,13 +13,16 @@ from bot.keyboards import (
     help_keyboard,
     nas_keyboard,
     root_keyboard,
+    sys_keyboard,
 )
+from bot.sysload import sys_top_text
 from bot.uptime import nas_uptime_text
 
 router = Router()
 
 ROOT_TEXT = "Домашний NAS-бот.\nВыбери раздел:"
 NAS_TEXT = "NAS — доступные команды:"
+SYS_TEXT = "System — доступные команды:"
 DOCKER_TEXT = "Docker — доступные команды:"
 RESTART_CONFIRM = (
     "Перезапустить все запущенные контейнеры, кроме бота?\n"
@@ -31,10 +34,11 @@ HELP_TEXT = (
     "Команды:\n"
     "• /start — главное меню\n"
     "• /help — эта справка\n"
-    "• NAS → Uptime — время работы сервера\n"
-    "• NAS → DF — место на основных дисках\n"
     "• NAS → Docker → PS — запущенные контейнеры\n"
     "• NAS → Docker → Restart — перезапуск контейнеров через хост\n"
+    "• NAS → System → Uptime — время работы сервера\n"
+    "• NAS → System → DF — место на основных дисках\n"
+    "• NAS → System → Top — CPU, RAM, LA, топ процессов\n"
 )
 
 
@@ -60,6 +64,12 @@ async def menu_nas(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
+@router.callback_query(F.data == "menu:sys")
+async def menu_sys(callback: CallbackQuery) -> None:
+    await callback.message.edit_text(SYS_TEXT, reply_markup=sys_keyboard())
+    await callback.answer()
+
+
 @router.callback_query(F.data == "menu:help")
 async def menu_help(callback: CallbackQuery) -> None:
     await callback.message.edit_text(HELP_TEXT, reply_markup=help_keyboard())
@@ -72,16 +82,22 @@ async def menu_docker(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
-@router.callback_query(F.data == "cmd:nas.uptime")
-async def cmd_nas_uptime(callback: CallbackQuery, config: Config) -> None:
+@router.callback_query(F.data.in_({"cmd:sys.uptime", "cmd:nas.uptime"}))
+async def cmd_sys_uptime(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(nas_uptime_text(config.uptime_path))
     await callback.answer()
 
 
-@router.callback_query(F.data == "cmd:nas.df")
-async def cmd_nas_df(callback: CallbackQuery, config: Config) -> None:
+@router.callback_query(F.data.in_({"cmd:sys.df", "cmd:nas.df"}))
+async def cmd_sys_df(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(nas_df_text(config.host_root, config.df_min_bytes))
     await callback.answer()
+
+
+@router.callback_query(F.data == "cmd:sys.top")
+async def cmd_sys_top(callback: CallbackQuery, config: Config) -> None:
+    await callback.answer()
+    await callback.message.answer(await sys_top_text(config.host_root))
 
 
 @router.callback_query(F.data == "cmd:nas.docker.ps")

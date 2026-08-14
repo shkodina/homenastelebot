@@ -1,0 +1,16 @@
+[Unit]
+Description=homenasbot docker restart watcher
+After=docker.service homenasbot.service
+Requires=docker.service
+BindsTo=homenasbot.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+WorkingDirectory=@ROOT@
+Environment=DOCKER=docker
+ExecStart=@ROOT@/scripts/docker-restart-watch.sh --loop
+
+[Install]
+WantedBy=multi-user.target

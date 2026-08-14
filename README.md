@@ -10,8 +10,7 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню кнопками: `/start` → **NAS** → Uptime / DF / Docker
-- Docker: **PS** (имя, статус, возраст) и **Restart** через флаг-файл на хосте
+- меню: `/start` → **NAS** → **Docker** | **System**
 
 ## Конфиг
 
@@ -53,6 +52,12 @@ docker:
 ./compose.sh start
 ./compose.sh restart
 ./compose.sh stop
+```
+
+Автозапуск после ребута (контейнер + вотчер):
+
+```bash
+./scripts/install-autostart.sh
 ```
 
 `nas.uptime_path` — путь к файлу `/proc/uptime` (ядро хоста, не контейнера). Если бот крутится на NAS в Docker, этого достаточно.

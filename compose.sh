@@ -35,6 +35,14 @@ watcher_running() {
 start_watcher() {
   mkdir -p "$WATCH_DIR"
   chmod +x "$WATCH" 2>/dev/null || true
+  if [ "${HOMENASBOT_SKIP_WATCHER:-}" = 1 ]; then
+    echo "restart-watch via systemd"
+    return 0
+  fi
+  if systemctl is-active --quiet homenasbot-watch.service 2>/dev/null; then
+    echo "restart-watch already via systemd"
+    return 0
+  fi
   if watcher_running; then
     echo "restart-watch already running pid=$(cat "$PIDFILE")"
     return 0
@@ -48,6 +56,10 @@ start_watcher() {
 
 stop_watcher() {
   local pid
+  if systemctl is-active --quiet homenasbot-watch.service 2>/dev/null; then
+    echo "restart-watch managed by systemd, skip kill"
+    return 0
+  fi
   if ! watcher_running; then
     rm -f "$PIDFILE"
     echo "restart-watch not running"

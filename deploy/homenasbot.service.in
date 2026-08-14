@@ -1,0 +1,17 @@
+[Unit]
+Description=homenasbot telegram container
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target homenasbot-watch.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@ROOT@
+Environment=HOMENASBOT_SKIP_WATCHER=1
+ExecStart=@ROOT@/compose.sh start
+ExecStop=@ROOT@/compose.sh stop
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
