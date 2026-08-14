@@ -1,0 +1,14 @@
+telegram:
+  token: "PUT_BOT_TOKEN_HERE"
+  allowed_ids:
+    - 123456789
+  proxy:
+    enabled: true
+    type: socks5
+    host: 10.0.0.1
+    port: 1080
+    username: user
+    password: password
+
+nas:
+  uptime_path: /proc/uptime

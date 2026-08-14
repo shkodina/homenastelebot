@@ -1,0 +1,9 @@
+.git
+__pycache__
+**/__pycache__
+*.pyc
+tests
+xtmp-*
+.env
+README.md
+cnf.example.yaml

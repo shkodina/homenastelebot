@@ -1,0 +1,21 @@
+services:
+  homenasbot-base:
+    image: homenasbot-base:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      network: host
+    profiles:
+      - build
+
+  homenasbot:
+    image: homenasbot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    volumes:
+      - ./xtmp-cnf.yaml:/app/xtmp-cnf.yaml:ro
+    environment:
+      CONFIG_PATH: /app/xtmp-cnf.yaml
+    restart: unless-stopped
