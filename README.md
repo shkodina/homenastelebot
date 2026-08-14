@@ -1,5 +1,7 @@
 # homenastelebot
 
+Для следующего агента: сначала читай [`.develop/`](.develop/) — правила, архитектура, что уже сделано.
+
 Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram 3](https://docs.aiogram.dev/).
 
 Секреты, whitelist и любые данные, которые выдают расположение или личные характеристики, живут только в `xtmp-cnf.yaml` (шаблон `xtmp-*` уже в `.gitignore`).
@@ -8,10 +10,8 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню кнопками: `/start` → **NAS** → **Uptime** → время работы сервера
-- `/help` и кнопка **Справка** — список доступных команд
-
-Дальше команды дописываются в меню NAS.
+- меню кнопками: `/start` → **NAS** → Uptime / DF / Docker
+- Docker: **PS** (имя, статус, возраст) и **Restart** через флаг-файл на хосте
 
 ## Конфиг
 
@@ -36,6 +36,23 @@ telegram:
 
 nas:
   uptime_path: /proc/uptime
+  host_root: /host
+
+docker:
+  socket: /var/run/docker.sock
+  restart_flag: /xtmp-docker/restart
+  restart_skip:
+    - homenasbot
+```
+
+`nas.host_root` — корень хоста, примонтированный в контейнер (для `df`). Restart не дергает Docker API: бот пишет флаг, хостовый скрипт перезапускает контейнеры и удаляет файл.
+
+Вотчер поднимается и гасится вместе с ботом:
+
+```bash
+./compose.sh start
+./compose.sh restart
+./compose.sh stop
 ```
 
 `nas.uptime_path` — путь к файлу `/proc/uptime` (ядро хоста, не контейнера). Если бот крутится на NAS в Docker, этого достаточно.

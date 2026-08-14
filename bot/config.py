@@ -6,6 +6,8 @@ from urllib.parse import quote
 
 import yaml
 
+from bot.disks import DEFAULT_MIN_BYTES
+
 
 class ConfigError(Exception):
     pass
@@ -26,6 +28,11 @@ class Config:
     token: str
     allowed_ids: frozenset[int]
     uptime_path: str = "/proc/uptime"
+    host_root: str = "/host"
+    df_min_bytes: int = DEFAULT_MIN_BYTES
+    docker_socket: str = "/var/run/docker.sock"
+    restart_flag: str = "/xtmp-docker/restart"
+    restart_skip: tuple[str, ...] = ("homenasbot",)
     proxy: ProxyConfig | None = None
 
 
@@ -112,11 +119,31 @@ def load_config(path: str) -> Config:
 
     nas = data.get("nas") or {}
     uptime_path = str(nas.get("uptime_path") or "/proc/uptime")
+    host_root = str(nas.get("host_root") or "/host")
+    try:
+        df_min_bytes = int(nas.get("df_min_bytes") or DEFAULT_MIN_BYTES)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError("nas.df_min_bytes must be an integer") from exc
+
+    docker = data.get("docker") or {}
+    docker_socket = str(docker.get("socket") or "/var/run/docker.sock")
+    restart_flag = str(docker.get("restart_flag") or "/xtmp-docker/restart")
+    raw_skip = docker.get("restart_skip")
+    if raw_skip is None:
+        restart_skip = ("homenasbot",)
+    else:
+        restart_skip = tuple(str(item) for item in raw_skip if str(item).strip())
+
     proxy = _parse_proxy(telegram.get("proxy"))
 
     return Config(
         token=token,
         allowed_ids=allowed_ids,
         uptime_path=uptime_path,
+        host_root=host_root,
+        df_min_bytes=df_min_bytes,
+        docker_socket=docker_socket,
+        restart_flag=restart_flag,
+        restart_skip=restart_skip,
         proxy=proxy,
     )

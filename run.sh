@@ -16,4 +16,4 @@ echo "$DOCKER build --network=host -t homenasbot:latest -f Dockerfile ."
 $DOCKER build --network=host -t homenasbot:latest -f Dockerfile .
 
 echo "$DOCKER compose up -d --no-build"
-$DOCKER compose up -d --no-build
+./compose.sh start

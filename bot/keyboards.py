@@ -23,7 +23,28 @@ def nas_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
             [("Uptime", "cmd:nas.uptime")],
+            [("DF", "cmd:nas.df")],
+            [("Docker", "menu:nas.docker")],
             [("Назад", "menu:root")],
+        ]
+    )
+
+
+def docker_keyboard() -> InlineKeyboardMarkup:
+    return _keyboard(
+        [
+            [("PS", "cmd:nas.docker.ps")],
+            [("Restart", "cmd:nas.docker.restart")],
+            [("Назад", "menu:nas")],
+        ]
+    )
+
+
+def docker_restart_keyboard() -> InlineKeyboardMarkup:
+    return _keyboard(
+        [
+            [("Да, перезапустить", "cmd:nas.docker.restart.yes")],
+            [("Отмена", "menu:nas.docker")],
         ]
     )
 

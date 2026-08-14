@@ -16,6 +16,14 @@ services:
       network: host
     volumes:
       - ./xtmp-cnf.yaml:/app/xtmp-cnf.yaml:ro
+      - ./xtmp-docker:/xtmp-docker
+      - type: bind
+        source: /
+        target: /host
+        read_only: true
+        bind:
+          propagation: rslave
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       CONFIG_PATH: /app/xtmp-cnf.yaml
     restart: unless-stopped

@@ -12,3 +12,10 @@ telegram:
 
 nas:
   uptime_path: /proc/uptime
+  host_root: /host
+
+docker:
+  socket: /var/run/docker.sock
+  restart_flag: /xtmp-docker/restart
+  restart_skip:
+    - homenasbot
