@@ -31,9 +31,11 @@ async def run() -> None:
     bot = Bot(token=config.token, session=session)
     dp = Dispatcher()
     dp["config"] = config
-    dp.update.outer_middleware(AllowlistMiddleware(config.allowed_ids))
+    allowlist = AllowlistMiddleware(config.allowed_ids)
+    router.message.middleware(allowlist)
+    router.callback_query.middleware(allowlist)
     dp.include_router(router)
-    logger.info("polling started, allowed_ids=%s", sorted(config.allowed_ids))
+    logger.info("polling started")
     await dp.start_polling(bot)
 
 

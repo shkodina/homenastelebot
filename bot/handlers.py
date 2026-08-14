@@ -54,3 +54,8 @@ async def menu_help(callback: CallbackQuery) -> None:
 async def cmd_nas_uptime(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(nas_uptime_text(config.uptime_path))
     await callback.answer()
+
+
+@router.message()
+async def any_message(message: Message) -> None:
+    await message.answer(ROOT_TEXT, reply_markup=root_keyboard())
