@@ -24,6 +24,20 @@ class ProxyConfig:
 
 
 @dataclass(frozen=True)
+class FtpConfig:
+    service: str = "vsftpd"
+    flag: str = "/xtmp-docker/ftp"
+    result: str = "/xtmp-docker/ftp.result"
+    user: str = ""
+    password: str = ""
+    endpoint_internal: str = ""
+    endpoint_external: str = ""
+    send_login_data: bool = False
+    send_server_info: bool = False
+    send_in_split_messages: bool = False
+
+
+@dataclass(frozen=True)
 class Config:
     token: str
     allowed_ids: frozenset[int]
@@ -35,6 +49,7 @@ class Config:
     restart_skip: tuple[str, ...] = ("homenasbot",)
     proxy: ProxyConfig | None = None
     cursor_api_key: str = ""
+    ftp: FtpConfig = FtpConfig()
 
 
 def proxy_url(config: Config) -> str | None:
@@ -95,6 +110,50 @@ def _parse_proxy(raw: object) -> ProxyConfig | None:
     )
 
 
+def _as_bool(value: object, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _as_map(raw: object, name: str) -> dict:
+    if not raw:
+        return {}
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{name} must be a mapping")
+    return raw
+
+
+def _parse_ftp(data: dict) -> FtpConfig:
+    ftp = _as_map(data.get("ftp"), "ftp")
+    vsftpd = _as_map(data.get("vsftpd"), "vsftpd")
+    send = vsftpd.get("send_on_start") or ftp.get("send_on_start") or {}
+    send = _as_map(send, "vsftpd.send_on_start")
+    endpoints = vsftpd.get("endpoints") or ftp.get("endpoints") or {}
+    endpoints = _as_map(endpoints, "vsftpd.endpoints")
+    split = send.get("send_in_splited_messages")
+    if split is None:
+        split = send.get("send_in_split_messages")
+    return FtpConfig(
+        service=str(ftp.get("service") or vsftpd.get("service") or "vsftpd").strip() or "vsftpd",
+        flag=str(ftp.get("flag") or vsftpd.get("flag") or "/xtmp-docker/ftp").strip()
+        or "/xtmp-docker/ftp",
+        result=str(ftp.get("result") or vsftpd.get("result") or "/xtmp-docker/ftp.result").strip()
+        or "/xtmp-docker/ftp.result",
+        user=str(vsftpd.get("user") or ftp.get("user") or "").strip(),
+        password=str(vsftpd.get("pass") or vsftpd.get("password") or ftp.get("pass") or "").strip(),
+        endpoint_internal=str(endpoints.get("internal") or "").strip(),
+        endpoint_external=str(endpoints.get("external") or "").strip(),
+        send_login_data=_as_bool(send.get("send_login_data")),
+        send_server_info=_as_bool(send.get("send_server_info")),
+        send_in_split_messages=_as_bool(split),
+    )
+
+
 def load_config(path: str) -> Config:
     config_path = Path(path)
     if not config_path.is_file():
@@ -141,6 +200,7 @@ def load_config(path: str) -> Config:
     if cursor and not isinstance(cursor, dict):
         raise ConfigError("cursor must be a mapping")
     cursor_api_key = str((cursor or {}).get("api_key") or "").strip()
+    ftp = _parse_ftp(data)
 
     return Config(
         token=token,
@@ -153,4 +213,5 @@ def load_config(path: str) -> Config:
         restart_skip=restart_skip,
         proxy=proxy,
         cursor_api_key=cursor_api_key,
+        ftp=ftp,
     )

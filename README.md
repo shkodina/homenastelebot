@@ -45,9 +45,23 @@ docker:
 
 cursor:
   api_key: "crsr_..."   # User API Key с https://cursor.com/dashboard/api
+
+ftp:
+  service: vsftpd        # хостовый systemd-юнит, On/Off через вотчер
+
+vsftpd:
+  send_on_start:
+    send_login_data: true
+    send_server_info: true
+    send_in_splited_messages: true   # с телефона — отдельные сообщения для копирования
+  user: "FTP_USER"
+  pass: "FTP_PASSWORD"
+  endpoints:
+    internal: "ftp://192.168.88.25:21"
+    external: "ftp://217.15.195.187:54321"
 ```
 
-`nas.host_root` — корень хоста, примонтированный в контейнер (для `df`). Restart не дергает Docker API: бот пишет флаг, хостовый скрипт перезапускает контейнеры и удаляет файл.
+`nas.host_root` — корень хоста, примонтированный в контейнер (для `df`). Restart и FTP не дергают systemd из контейнера: бот пишет флаг, хостовый скрипт выполняет действие и удаляет файл. **FTP → On** делает `systemctl enable --now vsftpd`, **Off** — `disable --now` (после ребута остаётся как последнее нажатие). Если в `vsftpd.send_on_start` включены флаги, после успешного On бот пришлёт логин/пароль и адреса: `send_in_splited_messages: true` — отдельными сообщениями (удобно копировать с телефона), `false` — одним блоком.
 
 Вотчер поднимается и гасится вместе с ботом:
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
 
@@ -8,9 +9,11 @@ from bot.config import Config, proxy_url
 from bot.cursor_usage import cursor_usage_text
 from bot.disks import nas_df_text
 from bot.dockers import nas_docker_ps_text, request_restart
+from bot.ftp import apply_ftp, ftp_info_messages, ftp_menu_text
 from bot.keyboards import (
     docker_keyboard,
     docker_restart_keyboard,
+    ftp_keyboard,
     help_keyboard,
     nas_keyboard,
     root_keyboard,
@@ -40,6 +43,7 @@ HELP_TEXT = (
     "• NAS → System → Uptime — время работы сервера\n"
     "• NAS → System → DF — место на основных дисках\n"
     "• NAS → System → Top — CPU, RAM, LA, топ процессов\n"
+    "• NAS → FTP — включить / выключить vsftpd на хосте\n"
     "• Cursor — дни до рефреша и проценты токенов\n"
 )
 
@@ -81,6 +85,15 @@ async def menu_help(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "menu:nas.docker")
 async def menu_docker(callback: CallbackQuery) -> None:
     await callback.message.edit_text(DOCKER_TEXT, reply_markup=docker_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:nas.ftp")
+async def menu_ftp(callback: CallbackQuery, config: Config) -> None:
+    await callback.message.edit_text(
+        ftp_menu_text(config.host_root, config.ftp.service),
+        reply_markup=ftp_keyboard(),
+    )
     await callback.answer()
 
 
@@ -126,6 +139,38 @@ async def cmd_docker_restart(callback: CallbackQuery) -> None:
 async def cmd_docker_restart_yes(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(request_restart(config.restart_flag, config.restart_skip))
     await callback.answer()
+
+
+@router.callback_query(F.data.in_({"cmd:nas.ftp.on", "cmd:nas.ftp.off"}))
+async def cmd_ftp_toggle(callback: CallbackQuery, config: Config) -> None:
+    await callback.answer()
+    action = "on" if callback.data == "cmd:nas.ftp.on" else "off"
+    text, ok = await apply_ftp(
+        action=action,
+        flag_path=config.ftp.flag,
+        result_path=config.ftp.result,
+        host_root=config.host_root,
+        service=config.ftp.service,
+    )
+    await callback.message.answer(text)
+    if ok and action == "on":
+        for msg in ftp_info_messages(
+            user=config.ftp.user,
+            password=config.ftp.password,
+            internal=config.ftp.endpoint_internal,
+            external=config.ftp.endpoint_external,
+            send_login_data=config.ftp.send_login_data,
+            send_server_info=config.ftp.send_server_info,
+            send_in_split_messages=config.ftp.send_in_split_messages,
+        ):
+            await callback.message.answer(msg)
+    try:
+        await callback.message.edit_text(
+            ftp_menu_text(config.host_root, config.ftp.service),
+            reply_markup=ftp_keyboard(),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 @router.message()

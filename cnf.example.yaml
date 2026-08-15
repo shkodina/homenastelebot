@@ -22,3 +22,17 @@ docker:
 
 cursor:
   api_key: "crsr_PUT_USER_API_KEY_HERE"
+
+ftp:
+  service: vsftpd
+
+vsftpd:
+  send_on_start:
+    send_login_data: true
+    send_server_info: true
+    send_in_splited_messages: true
+  user: "FTP_USER"
+  pass: "FTP_PASSWORD"
+  endpoints:
+    internal: "ftp://192.168.88.25:21"
+    external: "ftp://217.15.195.187:54321"

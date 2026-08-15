@@ -23,6 +23,7 @@ def nas_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
             [("Docker", "menu:nas.docker"), ("System", "menu:sys")],
+            [("FTP", "menu:nas.ftp")],
             [("Назад", "menu:root")],
         ]
     )
@@ -34,6 +35,15 @@ def sys_keyboard() -> InlineKeyboardMarkup:
             [("Uptime", "cmd:sys.uptime")],
             [("DF", "cmd:sys.df")],
             [("Top", "cmd:sys.top")],
+            [("Назад", "menu:nas")],
+        ]
+    )
+
+
+def ftp_keyboard() -> InlineKeyboardMarkup:
+    return _keyboard(
+        [
+            [("On", "cmd:nas.ftp.on"), ("Off", "cmd:nas.ftp.off")],
             [("Назад", "menu:nas")],
         ]
     )
