@@ -4,7 +4,8 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from bot.config import Config
+from bot.config import Config, proxy_url
+from bot.cursor_usage import cursor_usage_text
 from bot.disks import nas_df_text
 from bot.dockers import nas_docker_ps_text, request_restart
 from bot.keyboards import (
@@ -39,6 +40,7 @@ HELP_TEXT = (
     "• NAS → System → Uptime — время работы сервера\n"
     "• NAS → System → DF — место на основных дисках\n"
     "• NAS → System → Top — CPU, RAM, LA, топ процессов\n"
+    "• Cursor — дни до рефреша и проценты токенов\n"
 )
 
 
@@ -98,6 +100,14 @@ async def cmd_sys_df(callback: CallbackQuery, config: Config) -> None:
 async def cmd_sys_top(callback: CallbackQuery, config: Config) -> None:
     await callback.answer()
     await callback.message.answer(await sys_top_text(config.host_root))
+
+
+@router.callback_query(F.data == "cmd:cursor.usage")
+async def cmd_cursor_usage(callback: CallbackQuery, config: Config) -> None:
+    await callback.answer()
+    await callback.message.answer(
+        await cursor_usage_text(config.cursor_api_key, proxy_url(config))
+    )
 
 
 @router.callback_query(F.data == "cmd:nas.docker.ps")

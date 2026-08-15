@@ -34,6 +34,7 @@ class Config:
     restart_flag: str = "/xtmp-docker/restart"
     restart_skip: tuple[str, ...] = ("homenasbot",)
     proxy: ProxyConfig | None = None
+    cursor_api_key: str = ""
 
 
 def proxy_url(config: Config) -> str | None:
@@ -136,6 +137,11 @@ def load_config(path: str) -> Config:
 
     proxy = _parse_proxy(telegram.get("proxy"))
 
+    cursor = data.get("cursor") or {}
+    if cursor and not isinstance(cursor, dict):
+        raise ConfigError("cursor must be a mapping")
+    cursor_api_key = str((cursor or {}).get("api_key") or "").strip()
+
     return Config(
         token=token,
         allowed_ids=allowed_ids,
@@ -146,4 +152,5 @@ def load_config(path: str) -> Config:
         restart_flag=restart_flag,
         restart_skip=restart_skip,
         proxy=proxy,
+        cursor_api_key=cursor_api_key,
     )

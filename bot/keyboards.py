@@ -13,7 +13,7 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 def root_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
-            [("NAS", "menu:nas")],
+            [("NAS", "menu:nas"), ("Cursor", "cmd:cursor.usage")],
             [("Справка", "menu:help")],
         ]
     )
@@ -61,7 +61,7 @@ def docker_restart_keyboard() -> InlineKeyboardMarkup:
 def help_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
-            [("NAS", "menu:nas")],
+            [("NAS", "menu:nas"), ("Cursor", "cmd:cursor.usage")],
             [("Назад", "menu:root")],
         ]
     )

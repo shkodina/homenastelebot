@@ -10,7 +10,7 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню: `/start` → **NAS** → **Docker** | **System**
+- меню: `/start` → **NAS** | **Cursor** → **Docker** | **System**
 
 ## Конфиг
 
@@ -42,6 +42,9 @@ docker:
   restart_flag: /xtmp-docker/restart
   restart_skip:
     - homenasbot
+
+cursor:
+  api_key: "crsr_..."   # User API Key с https://cursor.com/dashboard/api
 ```
 
 `nas.host_root` — корень хоста, примонтированный в контейнер (для `df`). Restart не дергает Docker API: бот пишет флаг, хостовый скрипт перезапускает контейнеры и удаляет файл.
@@ -61,6 +64,8 @@ docker:
 ```
 
 `nas.uptime_path` — путь к файлу `/proc/uptime` (ядро хоста, не контейнера). Если бот крутится на NAS в Docker, этого достаточно.
+
+Кнопка **Cursor** ходит в usage API аккаунта: дни до сброса биллинга, процент дефолтных токенов (Auto / Composer) и процент специализированных / API-моделей. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Это не Cloud Agents SDK key и не Enterprise Admin key. Если ключ не задан, кнопка ответит инструкцией.
 
 SOCKS5 для Telegram API задаётся в `telegram.proxy`. DNS резолвится через прокси (`rdns`). Чтобы ходить напрямую, поставь `enabled: false`.
 

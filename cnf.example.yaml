@@ -19,3 +19,6 @@ docker:
   restart_flag: /xtmp-docker/restart
   restart_skip:
     - homenasbot
+
+cursor:
+  api_key: "crsr_PUT_USER_API_KEY_HERE"
