@@ -6,11 +6,14 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import Config, proxy_url
+from bot.cursor_agent import cursor_prompt_text, split_telegram_text
 from bot.cursor_usage import cursor_usage_text
+from bot.cursor_wait import arm_use, cancel_use, consume_use
 from bot.disks import nas_df_text
 from bot.dockers import nas_docker_ps_text, request_restart
 from bot.ftp import apply_ftp, ftp_info_messages, ftp_menu_text
 from bot.keyboards import (
+    cursor_keyboard,
     docker_keyboard,
     docker_restart_keyboard,
     ftp_keyboard,
@@ -27,6 +30,8 @@ router = Router()
 
 ROOT_TEXT = "Домашний NAS-бот.\nВыбери раздел:"
 NAS_TEXT = "NAS — доступные команды:"
+CURSOR_TEXT = "Cursor — доступные команды:"
+USE_WAIT_TEXT = "Жду запрос. Следующее сообщение уйдёт в Cursor."
 SYS_TEXT = "System — доступные команды:"
 DOCKER_TEXT = "Docker — доступные команды:"
 RESTART_CONFIRM = (
@@ -46,12 +51,15 @@ HELP_TEXT = (
     "• NAS → System → Top — CPU, RAM, LA, топ процессов\n"
     "• NAS → FTP — включить / выключить vsftpd на хосте\n"
     "• NAS → URL — сводная табличка внутренних и внешних ссылок\n"
-    "• Cursor — дни до рефреша и проценты токенов\n"
+    "• Cursor → Status — дни до рефреша и проценты токенов\n"
+    "• Cursor → Use — следующее сообщение уйдёт в Cursor\n"
 )
 
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
+    if message.from_user is not None:
+        cancel_use(message.from_user.id)
     await message.answer(ROOT_TEXT, reply_markup=root_keyboard())
 
 
@@ -69,6 +77,12 @@ async def menu_root(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "menu:nas")
 async def menu_nas(callback: CallbackQuery) -> None:
     await callback.message.edit_text(NAS_TEXT, reply_markup=nas_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu:cursor")
+async def menu_cursor(callback: CallbackQuery) -> None:
+    await callback.message.edit_text(CURSOR_TEXT, reply_markup=cursor_keyboard())
     await callback.answer()
 
 
@@ -123,6 +137,14 @@ async def cmd_cursor_usage(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(
         await cursor_usage_text(config.cursor_api_key, proxy_url(config))
     )
+
+
+@router.callback_query(F.data == "cmd:cursor.use")
+async def cmd_cursor_use(callback: CallbackQuery) -> None:
+    if callback.from_user is not None:
+        arm_use(callback.from_user.id)
+    await callback.message.answer(USE_WAIT_TEXT)
+    await callback.answer()
 
 
 @router.callback_query(F.data == "cmd:nas.url")
@@ -182,5 +204,20 @@ async def cmd_ftp_toggle(callback: CallbackQuery, config: Config) -> None:
 
 
 @router.message()
-async def any_message(message: Message) -> None:
+async def any_message(message: Message, config: Config) -> None:
+    user = message.from_user
+    if user is not None and consume_use(user.id):
+        text = (message.text or "").strip()
+        if not text:
+            await message.answer("Нужен текстовый запрос. Нажми Use ещё раз.")
+            return
+        await message.answer("Отправляю в Cursor…")
+        result = await cursor_prompt_text(
+            config.cursor_api_key,
+            text,
+            proxy_url(config),
+        )
+        for chunk in split_telegram_text(result):
+            await message.answer(chunk)
+        return
     await message.answer(ROOT_TEXT, reply_markup=root_keyboard())

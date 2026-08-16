@@ -7,6 +7,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject, Update, User
 
 from bot.auth import is_allowed
+from bot.cursor_wait import cancel_use
 
 logger = logging.getLogger(__name__)
 
@@ -41,4 +42,18 @@ class AllowlistMiddleware(BaseMiddleware):
         if user is None or not is_allowed(user.id, self.allowed_ids):
             logger.info("ignore user_id=%s event=%s", None if user is None else user.id, type(event).__name__)
             return None
+        return await handler(event, data)
+
+
+class CursorWaitCancelMiddleware(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: Dict[str, Any],
+    ) -> Any:
+        if isinstance(event, CallbackQuery) and event.data != "cmd:cursor.use":
+            user = event.from_user
+            if user is not None:
+                cancel_use(user.id)
         return await handler(event, data)

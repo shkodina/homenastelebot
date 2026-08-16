@@ -10,7 +10,7 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню: `/start` → **NAS** | **Cursor** → **Docker** | **System** | **FTP** | **URL**
+- меню: `/start` → **NAS** | **Cursor** → Docker / System / FTP / URL; Cursor → **Status** / **Use**
 
 ## Конфиг
 
@@ -82,7 +82,7 @@ vsftpd:
 
 Кнопка **URL** ходит на домашнюю страницу `nas.home` (ключ `nas.urls_page`) и присылает сводную табличку внутренних и внешних ссылок. Запрос идёт напрямую, без SOCKS5.
 
-Кнопка **Cursor** ходит в usage API аккаунта: дни до сброса биллинга, процент дефолтных токенов (Auto / Composer) и процент специализированных / API-моделей. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Это не Cloud Agents SDK key и не Enterprise Admin key. Если ключ не задан, кнопка ответит инструкцией.
+Раздел **Cursor**: **Status** ходит в usage API аккаунта (дни до сброса биллинга, проценты токенов). **Use** берёт следующее текстовое сообщение и запускает облачного агента без репозитория (`POST /v1/agents`), затем присылает ответ. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Тот же ключ идёт в Cloud Agents API. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Если ключ не задан, кнопки ответят инструкцией.
 
 SOCKS5 для Telegram API задаётся в `telegram.proxy`. DNS резолвится через прокси (`rdns`). Чтобы ходить напрямую, поставь `enabled: false`.
 

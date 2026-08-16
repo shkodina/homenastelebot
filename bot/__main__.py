@@ -9,7 +9,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 
 from bot.config import ConfigError, load_config, proxy_log_target, proxy_url
 from bot.handlers import router
-from bot.middleware import AllowlistMiddleware
+from bot.middleware import AllowlistMiddleware, CursorWaitCancelMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ async def run() -> None:
     allowlist = AllowlistMiddleware(config.allowed_ids)
     router.message.middleware(allowlist)
     router.callback_query.middleware(allowlist)
+    router.callback_query.middleware(CursorWaitCancelMiddleware())
     dp.include_router(router)
     logger.info("polling started")
     await dp.start_polling(bot)
