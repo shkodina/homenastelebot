@@ -10,7 +10,7 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню: `/start` → **NAS** | **Cursor** → **Docker** | **System**
+- меню: `/start` → **NAS** | **Cursor** → **Docker** | **System** | **FTP** | **URL**
 
 ## Конфиг
 
@@ -36,6 +36,7 @@ telegram:
 nas:
   uptime_path: /proc/uptime
   host_root: /host
+  urls_page: http://nas.home/
 
 docker:
   socket: /var/run/docker.sock
@@ -78,6 +79,8 @@ vsftpd:
 ```
 
 `nas.uptime_path` — путь к файлу `/proc/uptime` (ядро хоста, не контейнера). Если бот крутится на NAS в Docker, этого достаточно.
+
+Кнопка **URL** ходит на домашнюю страницу `nas.home` (ключ `nas.urls_page`) и присылает сводную табличку внутренних и внешних ссылок. Запрос идёт напрямую, без SOCKS5.
 
 Кнопка **Cursor** ходит в usage API аккаунта: дни до сброса биллинга, процент дефолтных токенов (Auto / Composer) и процент специализированных / API-моделей. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Это не Cloud Agents SDK key и не Enterprise Admin key. Если ключ не задан, кнопка ответит инструкцией.
 

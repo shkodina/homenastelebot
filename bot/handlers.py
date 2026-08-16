@@ -21,6 +21,7 @@ from bot.keyboards import (
 )
 from bot.sysload import sys_top_text
 from bot.uptime import nas_uptime_text
+from bot.urls import nas_urls_text
 
 router = Router()
 
@@ -44,6 +45,7 @@ HELP_TEXT = (
     "• NAS → System → DF — место на основных дисках\n"
     "• NAS → System → Top — CPU, RAM, LA, топ процессов\n"
     "• NAS → FTP — включить / выключить vsftpd на хосте\n"
+    "• NAS → URL — сводная табличка внутренних и внешних ссылок\n"
     "• Cursor — дни до рефреша и проценты токенов\n"
 )
 
@@ -121,6 +123,12 @@ async def cmd_cursor_usage(callback: CallbackQuery, config: Config) -> None:
     await callback.message.answer(
         await cursor_usage_text(config.cursor_api_key, proxy_url(config))
     )
+
+
+@router.callback_query(F.data == "cmd:nas.url")
+async def cmd_nas_url(callback: CallbackQuery, config: Config) -> None:
+    await callback.answer()
+    await callback.message.answer(await nas_urls_text(config.urls_page))
 
 
 @router.callback_query(F.data == "cmd:nas.docker.ps")

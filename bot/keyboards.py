@@ -23,7 +23,7 @@ def nas_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
             [("Docker", "menu:nas.docker"), ("System", "menu:sys")],
-            [("FTP", "menu:nas.ftp")],
+            [("FTP", "menu:nas.ftp"), ("URL", "cmd:nas.url")],
             [("Назад", "menu:root")],
         ]
     )

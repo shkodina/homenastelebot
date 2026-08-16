@@ -24,6 +24,8 @@ services:
         bind:
           propagation: rslave
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    extra_hosts:
+      - "nas.home:192.168.88.25"
     environment:
       CONFIG_PATH: /app/xtmp-cnf.yaml
     restart: unless-stopped

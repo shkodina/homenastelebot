@@ -7,6 +7,7 @@ from urllib.parse import quote
 import yaml
 
 from bot.disks import DEFAULT_MIN_BYTES
+from bot.urls import DEFAULT_URLS_PAGE
 
 
 class ConfigError(Exception):
@@ -49,6 +50,7 @@ class Config:
     restart_skip: tuple[str, ...] = ("homenasbot",)
     proxy: ProxyConfig | None = None
     cursor_api_key: str = ""
+    urls_page: str = DEFAULT_URLS_PAGE
     ftp: FtpConfig = FtpConfig()
 
 
@@ -200,6 +202,7 @@ def load_config(path: str) -> Config:
     if cursor and not isinstance(cursor, dict):
         raise ConfigError("cursor must be a mapping")
     cursor_api_key = str((cursor or {}).get("api_key") or "").strip()
+    urls_page = str(nas.get("urls_page") or DEFAULT_URLS_PAGE).strip() or DEFAULT_URLS_PAGE
     ftp = _parse_ftp(data)
 
     return Config(
@@ -213,5 +216,6 @@ def load_config(path: str) -> Config:
         restart_skip=restart_skip,
         proxy=proxy,
         cursor_api_key=cursor_api_key,
+        urls_page=urls_page,
         ftp=ftp,
     )
