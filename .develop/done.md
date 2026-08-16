@@ -10,7 +10,7 @@
 - SOCKS5 из YAML (для Telegram API и для Cursor HTTP).
 - Docker: `Dockerfile.base` + `Dockerfile`, compose, `run.sh`, `compose.sh`.
 - NAS → Docker → PS / Restart. NAS → System → Uptime, DF, Top. NAS → FTP. NAS → URL (таблица с nas.home, `extra_hosts`).
-- Cursor → Status (usage через api2.cursor.sh) / Use (облачный агент без репо).
+- Cursor → Status (usage через api2.cursor.sh) / Use (облачный агент без репо) / NAS (локальный `agent` CLI на хосте, confirm Выполнить).
 - Use принимает следующее сообщение целиком: текст, фото, стикер, gif, документ, аудио, voice, видео. Картинки — `prompt.images`, остальное в текст. В конец промпта дописывается протокол `TELEGRAM_FILES`; файлы из ответа уходят в Telegram.
 - Хостовый вотчер restart/FTP и его start/stop вместе с `compose.sh`.
 - Автозапуск: systemd `homenasbot` + `homenasbot-watch` через `scripts/install-autostart.sh`.

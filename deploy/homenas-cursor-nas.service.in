@@ -1,0 +1,16 @@
+[Unit]
+Description=homenasbot Cursor NAS CLI watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+User=@USER@
+WorkingDirectory=@ROOT@
+Environment=CURSOR_NAS_DIR=@ROOT@/xtmp-docker/cursor-nas
+ExecStart=@ROOT@/scripts/cursor-nas-watch.sh --loop
+
+[Install]
+WantedBy=multi-user.target

@@ -18,7 +18,8 @@
 │   └── URL         cmd:nas.url
 ├── Cursor          menu:cursor
 │   ├── Status      cmd:cursor.usage
-│   └── Use         cmd:cursor.use  → следующее сообщение = промпт
+│   ├── Use         cmd:cursor.use  → облако
+│   └── NAS         cmd:cursor.nas  → локальный CLI, confirm Выполнить
 └── Справка         menu:help
 ```
 
@@ -35,7 +36,8 @@ bot/keyboards.py      inline-клавиатуры
 bot/cursor_usage.py   Status: usage API аккаунта (api2.cursor.sh)
 bot/cursor_agent.py   Use: POST api.cursor.com/v1/agents, опрос run, разбор медиа
 bot/cursor_media.py   протокол TELEGRAM_FILES, скачивание artifacts, отправка в Telegram
-bot/cursor_wait.py    после Use следующее сообщение — промпт
+bot/cursor_nas.py     NAS: job в xtmp-docker/cursor-nas, поллинг, медиа из out/
+bot/cursor_wait.py    Use/NAS wait + черновик confirm
 bot/cursor_input.py   Use: текст/картинка/файл/аудио из Telegram → prompt + media hint
 bot/ftp.py            FTP on/off через флаг-файл + вотчер
 bot/sysload.py        top: /host/proc loadavg, meminfo, stat, топ CPU
@@ -80,6 +82,14 @@ xtmp-cnf.yaml         локальные секреты, в git нет
 6. К пользовательскому тексту бот дописывает протокол медиа: файлы класть в `artifacts/`, в конце ответа блок `===TELEGRAM_FILES===` … `===END_TELEGRAM_FILES===` с JSON (`name`, `send`, `path`, опционально `data` base64).
 7. Бот вырезает блок из текста, качает файлы (base64 или `GET /v1/agents/{id}/artifacts` + download URL) и шлёт в Telegram отдельными сообщениями: voice / audio / photo / video / document.
 8. Результат — новым сообщением (нарезка по 4096), файлы следом. Меню не затирать.
+
+## Cursor NAS
+
+1. Кнопка NAS → жду сообщение (полный shell хоста).
+2. Сообщение сохраняется как черновик, бот показывает превью и **Выполнить**.
+3. Выполнить пишет job в `xtmp-docker/cursor-nas/<id>/`. Хостовый `scripts/cursor-nas-watch.sh` запускает `agent -p --force` (cwd = каталог job).
+4. Бот поллит `job.json` до 1200 с, читает `result.txt` и файлы из `out/` по блоку `TELEGRAM_FILES`.
+5. Один NAS-job за раз. CLI не в контейнере. systemd: `homenas-cursor-nas.service` (не BindsTo бота).
 
 Альбом из нескольких сообщений Telegram — несколько апдейтов; в запрос попадает первое.
 

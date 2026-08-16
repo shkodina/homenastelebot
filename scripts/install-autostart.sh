@@ -19,12 +19,19 @@ install_unit() {
 install_unit "$ROOT/deploy/homenasbot.service.in" /etc/systemd/system/homenasbot.service
 install_unit "$ROOT/deploy/homenasbot-watch.service.in" /etc/systemd/system/homenasbot-watch.service
 
-$SUDO chmod +x "$ROOT/compose.sh" "$ROOT/scripts/docker-restart-watch.sh"
+UNIT_USER="${SUDO_USER:-$(id -un)}"
+if [ "$UNIT_USER" = "root" ]; then
+  UNIT_USER="$(stat -c %U "$ROOT" 2>/dev/null || echo blobby)"
+fi
+sed "s|@ROOT@|$ROOT|g; s|@USER@|$UNIT_USER|g" "$ROOT/deploy/homenas-cursor-nas.service.in" | $SUDO tee /etc/systemd/system/homenas-cursor-nas.service >/dev/null
+
+$SUDO chmod +x "$ROOT/compose.sh" "$ROOT/scripts/docker-restart-watch.sh" "$ROOT/scripts/cursor-nas-watch.sh"
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable docker.service
-$SUDO systemctl enable homenasbot.service homenasbot-watch.service
+$SUDO systemctl enable homenasbot.service homenasbot-watch.service homenas-cursor-nas.service
 $SUDO systemctl restart homenasbot.service
+$SUDO systemctl restart homenas-cursor-nas.service
 
-echo "enabled: docker, homenasbot, homenasbot-watch"
-$SUDO systemctl is-enabled homenasbot.service homenasbot-watch.service
-$SUDO systemctl --no-pager --full status homenasbot.service homenasbot-watch.service || true
+echo "enabled: docker, homenasbot, homenasbot-watch, homenas-cursor-nas"
+$SUDO systemctl is-enabled homenasbot.service homenasbot-watch.service homenas-cursor-nas.service
+$SUDO systemctl --no-pager --full status homenasbot.service homenasbot-watch.service homenas-cursor-nas.service || true

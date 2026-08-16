@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -8,7 +9,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import Config, proxy_url
-from bot.cursor_agent import cursor_prompt, split_telegram_text
+from bot.cursor_agent import SETUP_TEXT, cursor_prompt, split_telegram_text
 from bot.cursor_input import (
     build_cursor_prompt,
     download_attachments,
@@ -16,13 +17,32 @@ from bot.cursor_input import (
     telegram_file_specs,
 )
 from bot.cursor_usage import cursor_usage_text
-from bot.cursor_wait import arm_use, cancel_use, consume_use
+from bot.cursor_wait import (
+    NasDraft,
+    arm_nas,
+    arm_use,
+    cancel_use,
+    consume_nas,
+    consume_use,
+    put_nas_draft,
+    take_nas_draft,
+)
 from bot.cursor_media import send_outgoing_files
+from bot.cursor_nas import (
+    BUSY_TEXT,
+    NasBusy,
+    NasTimeout,
+    answer_from_job,
+    build_nas_prompt,
+    enqueue_job,
+    wait_job,
+)
 from bot.disks import nas_df_text
 from bot.dockers import nas_docker_ps_text, request_restart
 from bot.ftp import apply_ftp, ftp_info_messages, ftp_menu_text
 from bot.keyboards import (
     cursor_keyboard,
+    cursor_nas_confirm_keyboard,
     docker_keyboard,
     docker_restart_keyboard,
     ftp_keyboard,
@@ -43,6 +63,10 @@ ROOT_TEXT = "Домашний NAS-бот.\nВыбери раздел:"
 NAS_TEXT = "NAS — доступные команды:"
 CURSOR_TEXT = "Cursor — доступные команды:"
 USE_WAIT_TEXT = "Жду запрос. Следующее сообщение — текст, картинка, файл или аудио — уйдёт в Cursor."
+NAS_WAIT_TEXT = (
+    "Жду запрос для NAS. Следующее сообщение уйдёт локальному Cursor на хост (полный shell).\n"
+    "Запуск только после кнопки Выполнить."
+)
 SYS_TEXT = "System — доступные команды:"
 DOCKER_TEXT = "Docker — доступные команды:"
 RESTART_CONFIRM = (
@@ -63,7 +87,8 @@ HELP_TEXT = (
     "• NAS → FTP — включить / выключить vsftpd на хосте\n"
     "• NAS → URL — сводная табличка внутренних и внешних ссылок\n"
     "• Cursor → Status — дни до рефреша и проценты токенов\n"
-    "• Cursor → Use — следующее сообщение уйдёт в Cursor; ответ придёт текстом и файлами\n"
+    "• Cursor → Use — следующее сообщение уйдёт в облачный Cursor; ответ придёт текстом и файлами\n"
+    "• Cursor → NAS — локальный агент на хосте с shell; перед запуском кнопка Выполнить\n"
 )
 
 
@@ -158,6 +183,61 @@ async def cmd_cursor_use(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
+@router.callback_query(F.data == "cmd:cursor.nas")
+async def cmd_cursor_nas(callback: CallbackQuery, config: Config) -> None:
+    if not config.cursor_nas.enabled:
+        await callback.message.answer("NAS-агент выключен в конфиге.")
+        await callback.answer()
+        return
+    if not config.cursor_api_key:
+        await callback.message.answer(SETUP_TEXT)
+        await callback.answer()
+        return
+    if callback.from_user is not None:
+        arm_nas(callback.from_user.id)
+    await callback.message.answer(NAS_WAIT_TEXT)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "cmd:cursor.nas.yes")
+async def cmd_cursor_nas_yes(callback: CallbackQuery, config: Config) -> None:
+    await callback.answer()
+    user = callback.from_user
+    if user is None:
+        return
+    draft = take_nas_draft(user.id)
+    if draft is None:
+        await callback.message.answer("Нет черновика. Нажми NAS ещё раз.")
+        return
+    job_dir = Path(config.cursor_nas.job_dir)
+    try:
+        job_id = enqueue_job(job_dir, draft.prompt, draft.attachments)
+    except NasBusy:
+        put_nas_draft(user.id, draft)
+        await callback.message.answer(BUSY_TEXT)
+        return
+    await callback.message.answer("Запускаю на NAS…")
+    try:
+        job = await wait_job(job_dir, job_id, config.cursor_nas.timeout_sec)
+    except NasTimeout:
+        await callback.message.answer("Cursor NAS не ответил за отведённое время.")
+        return
+    except Exception:
+        logger.exception("cursor nas wait failed")
+        await callback.message.answer("Не удалось дождаться NAS-агента.")
+        return
+    if str(job.get("status") or "") == "error":
+        text, files = answer_from_job(job_dir, job_id)
+        await callback.message.answer(text or "Cursor NAS вернул ошибку.")
+        return
+    text, files = answer_from_job(job_dir, job_id)
+    if text:
+        for chunk in split_telegram_text(text):
+            await callback.message.answer(chunk)
+    if files:
+        await send_outgoing_files(callback.message, files)
+
+
 @router.callback_query(F.data == "cmd:nas.url")
 async def cmd_nas_url(callback: CallbackQuery, config: Config) -> None:
     await callback.answer()
@@ -217,6 +297,25 @@ async def cmd_ftp_toggle(callback: CallbackQuery, config: Config) -> None:
 @router.message()
 async def any_message(message: Message, config: Config) -> None:
     user = message.from_user
+    if user is not None and consume_nas(user.id):
+        try:
+            specs = telegram_file_specs(message)
+            attachments = await download_attachments(message.bot, specs)
+            pairs = [(item.name, item.data) for item in attachments]
+            prompt, preview, files = build_nas_prompt(message_text(message), pairs)
+        except Exception:
+            logger.exception("cursor nas attachment download failed")
+            await message.answer("Не удалось скачать вложение из Telegram. Нажми NAS ещё раз.")
+            return
+        if not message_text(message) and not files:
+            await message.answer("Нужен текст или вложение. Нажми NAS ещё раз.")
+            return
+        put_nas_draft(user.id, NasDraft(prompt=prompt, preview=preview, attachments=files))
+        await message.answer(
+            f"Запрос на NAS:\n{preview}\n\nНажми Выполнить, чтобы запустить локальный Cursor.",
+            reply_markup=cursor_nas_confirm_keyboard(),
+        )
+        return
     if user is not None and consume_use(user.id):
         try:
             specs = telegram_file_specs(message)

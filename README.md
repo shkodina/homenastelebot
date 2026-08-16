@@ -10,7 +10,7 @@ Telegram-бот для домашнего NAS. Стек: **Python 3** + [aiogram
 
 - отвечает **только** на полный совпадающий Telegram user id из `telegram.allowed_ids`
 - все остальные обращения **молча игнорирует**
-- меню: `/start` → **NAS** | **Cursor** → Docker / System / FTP / URL; Cursor → **Status** / **Use**
+- меню: `/start` → **NAS** | **Cursor** → Docker / System / FTP / URL; Cursor → **Status** / **Use** / **NAS**
 
 ## Конфиг
 
@@ -82,7 +82,7 @@ vsftpd:
 
 Кнопка **URL** ходит на домашнюю страницу `nas.home` (ключ `nas.urls_page`) и присылает сводную табличку внутренних и внешних ссылок. Запрос идёт напрямую, без SOCKS5.
 
-Раздел **Cursor**: **Status** ходит в usage API аккаунта (дни до сброса биллинга, проценты токенов). **Use** берёт следующее сообщение целиком — текст, картинку, файл или аудио — и запускает облачного агента без репозитория (`POST /v1/agents`), затем присылает ответ. Картинки уходят как `prompt.images`, остальное вкладывается в текст. К промпту дописывается договорённость про медиа: агент кладёт файлы в `artifacts/` и закрывает ответ блоком `===TELEGRAM_FILES===`; бот вырезает блок и шлёт файлы в Telegram. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Тот же ключ идёт в Cloud Agents API. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Если ключ не задан, кнопки ответят инструкцией.
+Раздел **Cursor**: **Status** — usage. **Use** — облачный агент без репозитория. **NAS** — локальный Cursor CLI на хосте с полным shell; перед запуском кнопка **Выполнить**. Картинки уходят как `prompt.images` (Use) или файлы в `inbox/` (NAS). К промпту дописывается блок `===TELEGRAM_FILES===`. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Тот же ключ идёт в Cloud Agents API и в `CURSOR_API_KEY` хостового `agent`. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys). Если ключ не задан, кнопки ответят инструкцией.
 
 SOCKS5 для Telegram API задаётся в `telegram.proxy`. DNS резолвится через прокси (`rdns`). Чтобы ходить напрямую, поставь `enabled: false`.
 

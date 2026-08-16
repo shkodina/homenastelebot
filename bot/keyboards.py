@@ -72,7 +72,17 @@ def cursor_keyboard() -> InlineKeyboardMarkup:
     return _keyboard(
         [
             [("Status", "cmd:cursor.usage"), ("Use", "cmd:cursor.use")],
+            [("NAS", "cmd:cursor.nas")],
             [("Назад", "menu:root")],
+        ]
+    )
+
+
+def cursor_nas_confirm_keyboard() -> InlineKeyboardMarkup:
+    return _keyboard(
+        [
+            [("Выполнить", "cmd:cursor.nas.yes")],
+            [("Отмена", "menu:cursor")],
         ]
     )
 

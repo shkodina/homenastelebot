@@ -39,6 +39,13 @@ class FtpConfig:
 
 
 @dataclass(frozen=True)
+class CursorNasConfig:
+    enabled: bool = True
+    job_dir: str = "/xtmp-docker/cursor-nas"
+    timeout_sec: int = 1200
+
+
+@dataclass(frozen=True)
 class Config:
     token: str
     allowed_ids: frozenset[int]
@@ -50,6 +57,7 @@ class Config:
     restart_skip: tuple[str, ...] = ("homenasbot",)
     proxy: ProxyConfig | None = None
     cursor_api_key: str = ""
+    cursor_nas: CursorNasConfig = CursorNasConfig()
     urls_page: str = DEFAULT_URLS_PAGE
     ftp: FtpConfig = FtpConfig()
 
@@ -156,6 +164,20 @@ def _parse_ftp(data: dict) -> FtpConfig:
     )
 
 
+def _parse_cursor_nas(raw: object) -> CursorNasConfig:
+    data = _as_map(raw, "cursor.nas")
+    timeout = data.get("timeout_sec", 1200)
+    try:
+        timeout_sec = int(timeout)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError("cursor.nas.timeout_sec must be an integer") from exc
+    if timeout_sec < 1:
+        raise ConfigError("cursor.nas.timeout_sec must be >= 1")
+    job_dir = str(data.get("job_dir") or "/xtmp-docker/cursor-nas").strip() or "/xtmp-docker/cursor-nas"
+    enabled = True if "enabled" not in data else _as_bool(data.get("enabled"), True)
+    return CursorNasConfig(enabled=enabled, job_dir=job_dir, timeout_sec=timeout_sec)
+
+
 def load_config(path: str) -> Config:
     config_path = Path(path)
     if not config_path.is_file():
@@ -202,6 +224,7 @@ def load_config(path: str) -> Config:
     if cursor and not isinstance(cursor, dict):
         raise ConfigError("cursor must be a mapping")
     cursor_api_key = str((cursor or {}).get("api_key") or "").strip()
+    cursor_nas = _parse_cursor_nas((cursor or {}).get("nas"))
     urls_page = str(nas.get("urls_page") or DEFAULT_URLS_PAGE).strip() or DEFAULT_URLS_PAGE
     ftp = _parse_ftp(data)
 
@@ -216,6 +239,7 @@ def load_config(path: str) -> Config:
         restart_skip=restart_skip,
         proxy=proxy,
         cursor_api_key=cursor_api_key,
+        cursor_nas=cursor_nas,
         urls_page=urls_page,
         ftp=ftp,
     )

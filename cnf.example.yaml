@@ -23,6 +23,10 @@ docker:
 
 cursor:
   api_key: "crsr_PUT_USER_API_KEY_HERE"
+  nas:
+    enabled: true
+    job_dir: /xtmp-docker/cursor-nas
+    timeout_sec: 1200
 
 ftp:
   service: vsftpd

@@ -52,7 +52,11 @@ class CursorWaitCancelMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        if isinstance(event, CallbackQuery) and event.data != "cmd:cursor.use":
+        if isinstance(event, CallbackQuery) and event.data not in {
+            "cmd:cursor.use",
+            "cmd:cursor.nas",
+            "cmd:cursor.nas.yes",
+        }:
             user = event.from_user
             if user is not None:
                 cancel_use(user.id)
