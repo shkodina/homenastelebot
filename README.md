@@ -82,7 +82,7 @@ vsftpd:
 
 Кнопка **URL** ходит на домашнюю страницу `nas.home` (ключ `nas.urls_page`) и присылает сводную табличку внутренних и внешних ссылок. Запрос идёт напрямую, без SOCKS5.
 
-Раздел **Cursor**: **Status** ходит в usage API аккаунта (дни до сброса биллинга, проценты токенов). **Use** берёт следующее текстовое сообщение и запускает облачного агента без репозитория (`POST /v1/agents`), затем присылает ответ. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Тот же ключ идёт в Cloud Agents API. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Если ключ не задан, кнопки ответят инструкцией.
+Раздел **Cursor**: **Status** ходит в usage API аккаунта (дни до сброса биллинга, проценты токенов). **Use** берёт следующее сообщение целиком — текст, картинку, файл или аудио — и запускает облачного агента без репозитория (`POST /v1/agents`), затем присылает ответ. Картинки уходят как `prompt.images`, остальное вкладывается в текст. Официального персонального usage API нет — бот обменивает User API Key (`crsr_...`) на session token и читает `GetCurrentPeriodUsage`. Тот же ключ идёт в Cloud Agents API. Ключ берётся в [Dashboard → API Keys → User API Keys](https://cursor.com/dashboard/api?section=user-keys): **New API Key**, скопировать сразу, вставить в `cursor.api_key`. Если ключ не задан, кнопки ответят инструкцией.
 
 SOCKS5 для Telegram API задаётся в `telegram.proxy`. DNS резолвится через прокси (`rdns`). Чтобы ходить напрямую, поставь `enabled: false`.
 

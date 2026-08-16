@@ -220,4 +220,3 @@ __marimo__/
 **/xtmp-*
 *.env
 tests/
-.develop/*

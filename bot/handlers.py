@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
@@ -7,6 +9,12 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.config import Config, proxy_url
 from bot.cursor_agent import cursor_prompt_text, split_telegram_text
+from bot.cursor_input import (
+    build_cursor_prompt,
+    download_attachments,
+    message_text,
+    telegram_file_specs,
+)
 from bot.cursor_usage import cursor_usage_text
 from bot.cursor_wait import arm_use, cancel_use, consume_use
 from bot.disks import nas_df_text
@@ -26,12 +34,14 @@ from bot.sysload import sys_top_text
 from bot.uptime import nas_uptime_text
 from bot.urls import nas_urls_text
 
+logger = logging.getLogger(__name__)
+
 router = Router()
 
 ROOT_TEXT = "Домашний NAS-бот.\nВыбери раздел:"
 NAS_TEXT = "NAS — доступные команды:"
 CURSOR_TEXT = "Cursor — доступные команды:"
-USE_WAIT_TEXT = "Жду запрос. Следующее сообщение уйдёт в Cursor."
+USE_WAIT_TEXT = "Жду запрос. Следующее сообщение — текст, картинка, файл или аудио — уйдёт в Cursor."
 SYS_TEXT = "System — доступные команды:"
 DOCKER_TEXT = "Docker — доступные команды:"
 RESTART_CONFIRM = (
@@ -52,7 +62,7 @@ HELP_TEXT = (
     "• NAS → FTP — включить / выключить vsftpd на хосте\n"
     "• NAS → URL — сводная табличка внутренних и внешних ссылок\n"
     "• Cursor → Status — дни до рефреша и проценты токенов\n"
-    "• Cursor → Use — следующее сообщение уйдёт в Cursor\n"
+    "• Cursor → Use — следующее сообщение (текст, картинка, файл, аудио) уйдёт в Cursor\n"
 )
 
 
@@ -207,14 +217,21 @@ async def cmd_ftp_toggle(callback: CallbackQuery, config: Config) -> None:
 async def any_message(message: Message, config: Config) -> None:
     user = message.from_user
     if user is not None and consume_use(user.id):
-        text = (message.text or "").strip()
-        if not text:
-            await message.answer("Нужен текстовый запрос. Нажми Use ещё раз.")
+        try:
+            specs = telegram_file_specs(message)
+            attachments = await download_attachments(message.bot, specs)
+            prompt = build_cursor_prompt(message_text(message), attachments)
+        except Exception:
+            logger.exception("cursor attachment download failed")
+            await message.answer("Не удалось скачать вложение из Telegram. Нажми Use ещё раз.")
+            return
+        if not prompt.get("text") and not prompt.get("images"):
+            await message.answer("Нужен текст или вложение. Нажми Use ещё раз.")
             return
         await message.answer("Отправляю в Cursor…")
         result = await cursor_prompt_text(
             config.cursor_api_key,
-            text,
+            prompt,
             proxy_url(config),
         )
         for chunk in split_telegram_text(result):

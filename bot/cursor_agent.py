@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 API_BASE = "https://api.cursor.com"
 CREATE_PATH = "/v1/agents"
-REQUEST_TIMEOUT_SEC = 20
+REQUEST_TIMEOUT_SEC = 60
 POLL_INTERVAL_SEC = 2
 POLL_ATTEMPTS = 150
 TELEGRAM_LIMIT = 4096
@@ -28,7 +28,7 @@ SETUP_TEXT = (
     '  api_key: "crsr_..."\n'
 )
 
-EMPTY_PROMPT = "Нужен текстовый запрос. Нажми Use ещё раз."
+EMPTY_PROMPT = "Нужен текст или вложение. Нажми Use ещё раз."
 NO_ANSWER = "Cursor ничего не ответил."
 FETCH_ERROR = "Не удалось отправить запрос в Cursor."
 
@@ -126,9 +126,29 @@ async def _http_request(
         return payload
 
 
+def _prompt_payload(prompt: str | dict) -> dict | None:
+    if isinstance(prompt, dict):
+        text = str(prompt.get("text") or "").strip()
+        images = prompt.get("images") or []
+        if not isinstance(images, list):
+            images = []
+        if not text and not images:
+            return None
+        if not text:
+            text = "Пользователь прислал вложение."
+        payload: dict = {"text": text}
+        if images:
+            payload["images"] = images
+        return payload
+    text = (prompt or "").strip()
+    if not text:
+        return None
+    return {"text": text}
+
+
 async def cursor_prompt_text(
     api_key: str,
-    prompt: str,
+    prompt: str | dict,
     proxy: str | None = None,
     request: RequestFn | None = None,
     sleep: SleepFn | None = None,
@@ -136,8 +156,8 @@ async def cursor_prompt_text(
     key = (api_key or "").strip()
     if not key:
         return SETUP_TEXT
-    text = (prompt or "").strip()
-    if not text:
+    payload = _prompt_payload(prompt)
+    if payload is None:
         return EMPTY_PROMPT
 
     waiter = sleep or asyncio.sleep
@@ -149,7 +169,7 @@ async def cursor_prompt_text(
                 created = await request(
                     "POST",
                     CREATE_PATH,
-                    {"prompt": {"text": text}, "agentId": agent_id},
+                    {"prompt": payload, "agentId": agent_id},
                 )
                 agent_id, run_id = parse_create_response(created)
             except (TimeoutError, asyncio.TimeoutError):
@@ -178,7 +198,7 @@ async def cursor_prompt_text(
         async def http_request(method: str, path: str, json: dict | None = None) -> dict:
             return await _http_request(session, key, method, path, json)
 
-        return await cursor_prompt_text(key, text, proxy, request=http_request, sleep=waiter)
+        return await cursor_prompt_text(key, payload, proxy, request=http_request, sleep=waiter)
     except aiohttp.ClientError:
         logger.warning("cursor prompt network failed")
         return "Не удалось подключиться к Cursor API."
