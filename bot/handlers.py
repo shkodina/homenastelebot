@@ -8,7 +8,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import Config, proxy_url
-from bot.cursor_agent import cursor_prompt_text, split_telegram_text
+from bot.cursor_agent import cursor_prompt, split_telegram_text
 from bot.cursor_input import (
     build_cursor_prompt,
     download_attachments,
@@ -17,6 +17,7 @@ from bot.cursor_input import (
 )
 from bot.cursor_usage import cursor_usage_text
 from bot.cursor_wait import arm_use, cancel_use, consume_use
+from bot.cursor_media import send_outgoing_files
 from bot.disks import nas_df_text
 from bot.dockers import nas_docker_ps_text, request_restart
 from bot.ftp import apply_ftp, ftp_info_messages, ftp_menu_text
@@ -62,7 +63,7 @@ HELP_TEXT = (
     "• NAS → FTP — включить / выключить vsftpd на хосте\n"
     "• NAS → URL — сводная табличка внутренних и внешних ссылок\n"
     "• Cursor → Status — дни до рефреша и проценты токенов\n"
-    "• Cursor → Use — следующее сообщение (текст, картинка, файл, аудио) уйдёт в Cursor\n"
+    "• Cursor → Use — следующее сообщение уйдёт в Cursor; ответ придёт текстом и файлами\n"
 )
 
 
@@ -229,12 +230,15 @@ async def any_message(message: Message, config: Config) -> None:
             await message.answer("Нужен текст или вложение. Нажми Use ещё раз.")
             return
         await message.answer("Отправляю в Cursor…")
-        result = await cursor_prompt_text(
+        answer = await cursor_prompt(
             config.cursor_api_key,
             prompt,
             proxy_url(config),
         )
-        for chunk in split_telegram_text(result):
-            await message.answer(chunk)
+        if answer.text:
+            for chunk in split_telegram_text(answer.text):
+                await message.answer(chunk)
+        if answer.files:
+            await send_outgoing_files(message, answer.files)
         return
     await message.answer(ROOT_TEXT, reply_markup=root_keyboard())

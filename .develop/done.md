@@ -11,7 +11,7 @@
 - Docker: `Dockerfile.base` + `Dockerfile`, compose, `run.sh`, `compose.sh`.
 - NAS → Docker → PS / Restart. NAS → System → Uptime, DF, Top. NAS → FTP. NAS → URL (таблица с nas.home, `extra_hosts`).
 - Cursor → Status (usage через api2.cursor.sh) / Use (облачный агент без репо).
-- Use принимает следующее сообщение целиком: текст, фото, стикер, gif, документ, аудио, voice, видео. Картинки — `prompt.images`, остальное в текст.
+- Use принимает следующее сообщение целиком: текст, фото, стикер, gif, документ, аудио, voice, видео. Картинки — `prompt.images`, остальное в текст. В конец промпта дописывается протокол `TELEGRAM_FILES`; файлы из ответа уходят в Telegram.
 - Хостовый вотчер restart/FTP и его start/stop вместе с `compose.sh`.
 - Автозапуск: systemd `homenasbot` + `homenasbot-watch` через `scripts/install-autostart.sh`.
 - Тесты локальные, папка `tests/` в gitignore; боевые id/прокси из тестов вычищены.
@@ -27,6 +27,7 @@
 7. `nas.home` с хоста часто не резолвится (нет в `/etc/hosts`), а nginx отвечает на `Host: nas.home`. В контейнере без `extra_hosts` кнопка URL получит DNS error. Алиас: `nas.home:192.168.88.25` в compose.
 8. **`POST /v1/agents` создаёт агента, но HTTP-ответ клиенту не приходит** (таймаут, 0 байт). GET списка/агента/run работает. Не считать таймаут фатальным: задать свой `agentId` (`bc-<uuid>`), после TimeoutError сделать `GET /v1/agents/{id}` и опросить run. Лог: `cursor prompt unexpected error` + `asyncio.TimeoutError` на POST — это оно.
 9. Use без перехвата вложений отвергает фото/файлы (`message.text` пустой). Скачивать через `bot.get_file` / `download_file` (сессия бота уже с SOCKS5). В лог не писать содержимое файлов и текст промпта.
+10. Облачный агент пишет файлы в workspace, но **не в `artifacts/`** — `GET /v1/agents/{id}/artifacts` будет `items: []`. Бот дописывает в промпт протокол: копировать в `artifacts/` и закрыть ответ блоком `===TELEGRAM_FILES===`. Для мелких файлов ещё `data` (base64), потому что индекс артефактов иногда пустой.
 
 ## Сознательно нет (пока не просили)
 

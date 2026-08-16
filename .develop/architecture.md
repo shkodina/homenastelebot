@@ -33,9 +33,10 @@ bot/middleware.py     точный whitelist; CursorWaitCancelMiddleware
 bot/handlers.py       только роутинг Telegram
 bot/keyboards.py      inline-клавиатуры
 bot/cursor_usage.py   Status: usage API аккаунта (api2.cursor.sh)
-bot/cursor_agent.py   Use: POST api.cursor.com/v1/agents, опрос run
+bot/cursor_agent.py   Use: POST api.cursor.com/v1/agents, опрос run, разбор медиа
+bot/cursor_media.py   протокол TELEGRAM_FILES, скачивание artifacts, отправка в Telegram
 bot/cursor_wait.py    после Use следующее сообщение — промпт
-bot/cursor_input.py   Use: текст/картинка/файл/аудио из Telegram → prompt
+bot/cursor_input.py   Use: текст/картинка/файл/аудио из Telegram → prompt + media hint
 bot/ftp.py            FTP on/off через флаг-файл + вотчер
 bot/sysload.py        top: /host/proc loadavg, meminfo, stat, топ CPU
 bot/urls.py           URL: GET nas.home, таблица ссылок в текст
@@ -76,7 +77,9 @@ xtmp-cnf.yaml         локальные секреты, в git нет
 3. Собрать prompt: картинки (png/jpeg/gif/webp, до 5, до 15 МБ) → `prompt.images`; текст/подпись и прочие файлы → `prompt.text` (utf-8 как текст, бинарь как base64, лимит 4 МБ).
 4. `POST https://api.cursor.com/v1/agents` с заранее заданным `agentId` (`bc-<uuid>`), без репозитория.
 5. Ответ POST часто **не приходит** (таймаут, 0 байт), хотя агент на сервере уже есть. Тогда `GET /v1/agents/{id}` и опрос `GET .../runs/{runId}` до FINISHED/ERROR.
-6. Результат — новым сообщением (нарезка по 4096). Меню не затирать.
+6. К пользовательскому тексту бот дописывает протокол медиа: файлы класть в `artifacts/`, в конце ответа блок `===TELEGRAM_FILES===` … `===END_TELEGRAM_FILES===` с JSON (`name`, `send`, `path`, опционально `data` base64).
+7. Бот вырезает блок из текста, качает файлы (base64 или `GET /v1/agents/{id}/artifacts` + download URL) и шлёт в Telegram отдельными сообщениями: voice / audio / photo / video / document.
+8. Результат — новым сообщением (нарезка по 4096), файлы следом. Меню не затирать.
 
 Альбом из нескольких сообщений Telegram — несколько апдейтов; в запрос попадает первое.
 

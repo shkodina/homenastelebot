@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass
 
+from bot.cursor_media import append_media_hint
+
 IMAGE_MIMES = {
     "image/png": "image/png",
     "image/jpeg": "image/jpeg",
@@ -154,6 +156,7 @@ def build_cursor_prompt(text: str, attachments: list[CursorAttachment]) -> dict:
     prompt_text = "\n\n".join(parts).strip()
     if images and not prompt_text:
         prompt_text = PLACEHOLDER_TEXT
+    prompt_text = append_media_hint(prompt_text)
     payload: dict = {"text": prompt_text}
     if images:
         payload["images"] = images
